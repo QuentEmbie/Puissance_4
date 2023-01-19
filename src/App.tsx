@@ -1,18 +1,18 @@
 import "./index.css";
-import { createMachine, interpret } from "xstate";
+import { assign, createMachine, interpret } from "xstate";
 import { useMachine } from "@xstate/react";
 import clsx from "clsx";
-import { piece } from "./types";
+import { PIECE, Piece } from "./types";
 import { Grid } from "./components/grid";
 
-const promiseMachine = createMachine(
+export const promiseMachine = createMachine(
   {
     schema: {
-      context: {} as { players?: string[]; grid: piece[][] },
-      events: {} as { type: "new_player" } | { type: "play_move" } | { type: "play_final_move" } | { type: "restart" },
+      context: {} as { players?: string[]; grid: Piece[][]; currentPlayer: Piece },
+      events: {} as { type: "NEW_PLAYER" } | { type: "PLAY_MOVE" } | { type: "RESTART" },
     },
     id: "promise",
-    initial: "waiting",
+    initial: "play",
     context: {
       grid: [
         ["v", "v", "v", "v", "v", "v", "v", "v"],
@@ -23,51 +23,68 @@ const promiseMachine = createMachine(
         ["v", "v", "v", "v", "v", "v", "v", "v"],
         ["v", "v", "j", "r", "v", "v", "v", "v"],
       ],
+      currentPlayer: "r",
     },
     states: {
       waiting: {
         on: {
-          new_player: { target: "play" },
+          NEW_PLAYER: { target: "play" },
         },
       },
       play: {
         on: {
-          play_move: { target: "play", actions: ["play"] },
-          play_final_move: { target: "end" },
+          PLAY_MOVE: { target: "play", actions: ["play"], cond: "column_valid" },
         },
       },
       end: {
         on: {
-          restart: { target: "waiting" },
+          RESTART: { target: "waiting" },
         },
       },
     },
   },
   {
     actions: {
-      play: (context, event) => {
-        console.log("yoo");
-        console.log(context, event);
+      play: assign((context, event) => {
+        context.grid[findLowestInColumn(context.grid, event.j)][event.j] = context.currentPlayer;
+        context.currentPlayer = context.currentPlayer === PIECE.ROUGE ? PIECE.JAUNE : PIECE.ROUGE;
+        return context;
+      }),
+    },
+    guards: {
+      column_valid: (context, event) => {
+        return findLowestInColumn(context.grid, event.j) >= 0;
       },
     },
   }
 );
 
+const findLowestInColumn = (grid: Piece[][], j: number) => {
+  for (let i = grid.length - 1; i >= 0; i--) {
+    if (grid[i][j] === PIECE.VIDE) {
+      return i;
+    }
+  }
+  return -1;
+};
+
 function App() {
-  const promiseService = interpret(promiseMachine).onTransition((state) => console.log(state.value));
   const [state, send] = useMachine(promiseMachine);
-
-  //promiseService.start();
-
-  //promiseService.onTransition((d) => console.log(d));
+  console.log(state);
   return (
     <div className="flex flex-col gap-10 items-center">
       <h1 className="text-black text-lg">Puissance 4</h1>
+
       <div className="flex gap-8">
-        <button onClick={() => send("new_player")}>new player</button>
-        <button onClick={() => promiseService.send({ type: "new_player" })}>play_move</button>
-        <button onClick={() => send("play_final_move")}>play_final_move</button>
-        <button onClick={() => send("restart")}>restart</button>
+        <button onClick={() => send("NEW_PLAYER")}>new player</button>
+        <button onClick={() => send("PLAY_MOVE")}>play_move</button>
+        <button onClick={() => send("RESTART")}>restart</button>
+      </div>
+      <div className="flex space-x-3">
+        <p>Current player: </p>
+        <div
+          className={clsx("rounded-full h-6 w-6 col-span-1", state.context.currentPlayer === "j" ? "bg-yellow-300" : "bg-red-300")}
+        ></div>
       </div>
       <Grid grid={state.context.grid} />
     </div>
