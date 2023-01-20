@@ -5,12 +5,13 @@ import clsx from "clsx";
 import { PIECE, Piece } from "./types";
 import { Grid } from "./components/grid";
 import { GetDerivedStateFromProps } from "react";
+import { findLowestInColumn, isWinningMove } from "./utils";
 
 export const promiseMachine = createMachine(
   {
     schema: {
-      context: {} as { players?: string[]; grid: Piece[][]; currentPlayer: Piece },
-      events: {} as { type: "NEW_PLAYER" } | { type: "PLAY_MOVE" } | { type: "PLAY_WINNING_MOVE" } | { type: "RESTART" },
+      context: {} as { grid: Piece[][]; currentPlayer: Piece },
+      events: {} as { type: "START" } | { type: "PLAY_MOVE" } | { type: "PLAY_WINNING_MOVE" } | { type: "END" } | { type: "RESTART" },
     },
     id: "promise",
     initial: "play",
@@ -29,13 +30,16 @@ export const promiseMachine = createMachine(
     states: {
       waiting: {
         on: {
-          NEW_PLAYER: { target: "play" },
+          START: { target: "play" },
         },
       },
       play: {
         on: {
-          PLAY_WINNING_MOVE: { target: "end", actions: ["play_winning_move"], cond: "is_winning_move" },
-          PLAY_MOVE: { target: "play", actions: ["play"], cond: "column_valid" },
+          PLAY_MOVE: [
+            { cond: "is_winning_move", actions: ["play_winning_move"], target: "end" },
+            { cond: "column_valid", actions: ["play"], target: "play" },
+          ],
+          END: { target: "end" },
         },
       },
       end: {
@@ -47,10 +51,12 @@ export const promiseMachine = createMachine(
   },
   {
     actions: {
-      play: assign((context, event) => {
-        context.grid[findLowestInColumn(context.grid, event.j)][event.j] = context.currentPlayer;
-        context.currentPlayer = context.currentPlayer === PIECE.ROUGE ? PIECE.JAUNE : PIECE.ROUGE;
-        return context;
+      play: assign({
+        grid: (context, event) => {
+          context.grid[findLowestInColumn(context.grid, event.j)][event.j] = context.currentPlayer;
+          return context.grid;
+        },
+        currentPlayer: (context, event) => (context.currentPlayer === PIECE.JAUNE ? PIECE.ROUGE : PIECE.JAUNE),
       }),
       play_winning_move: assign((context, event) => {
         context.grid[findLowestInColumn(context.grid, event.j)][event.j] = context.currentPlayer;
@@ -69,71 +75,32 @@ export const promiseMachine = createMachine(
   }
 );
 
-const findLowestInColumn = (grid: Piece[][], j: number) => {
-  console.log("findLowestInColumn: ", j);
-  for (let i = grid.length - 1; i >= 0; i--) {
-    if (grid[i][j] === PIECE.VIDE) {
-      return i;
-    }
-  }
-  return -1;
-};
-
-const isWinningMove = (grid: Piece[][], j: number, color: Piece) => {
-  const i = findLowestInColumn(grid, j);
-  console.log("isWinningMove: ", i, j);
-  const directions = [
-    { i: 1, j: 0 },
-    { i: 0, j: 1 },
-    { i: 1, j: 1 },
-    { i: 1, j: -1 },
-  ];
-  for (const dir of directions) {
-    let newI = i - dir.i;
-    let newJ = j - dir.j;
-    let acc = 1;
-    while (isInsideGrid(grid, newI, newJ) && grid[newI][newJ] === color) {
-      newI = newI - dir.i;
-      newJ = newJ - dir.j;
-      acc++;
-    }
-    newI = i + dir.i;
-    newJ = j + dir.j;
-    while (isInsideGrid(grid, newI, newJ) && grid[newI][newJ] === color) {
-      newI = newI + dir.i;
-      newJ = newJ + dir.j;
-      acc++;
-    }
-    if (4 <= acc) {
-      return true;
-    }
-  }
-  return false;
-};
-
-const isInsideGrid = (grid: Piece[][], i: number, j: number) => {
-  return 0 <= i && i < grid.length && 0 <= j && j < grid[0].length;
-};
-
 function App() {
-  const [state, send] = useMachine(promiseMachine);
-  console.log(state);
+  const [state, send] = useMachine(promiseMachine, {});
+  console.log(state.context.currentPlayer);
+  const onClickHandle = (i: number, j: number) => {
+    send("PLAY_MOVE", { i, j });
+  };
   return (
     <div className="flex flex-col gap-10 items-center">
       <h1 className="text-black text-lg">Puissance 4</h1>
 
       <div className="flex gap-8">
-        <button onClick={() => send("NEW_PLAYER")}>new player</button>
-        <button onClick={() => send("PLAY_MOVE")}>play_move</button>
-        <button onClick={() => send("RESTART")}>restart</button>
+        <button onClick={() => send("START")}>START</button>
+        <button onClick={() => console.log(state)}>PRINT STATE</button>
+        <button onClick={() => console.log(state.context)}>PRINT CONTEXT</button>
+        <button onClick={() => send("END")}>FINISH_GAME</button>
       </div>
       <div className="flex space-x-3">
         <p>Current player: </p>
-        <div
-          className={clsx("rounded-full h-6 w-6 col-span-1", state.context.currentPlayer === "j" ? "bg-yellow-300" : "bg-red-300")}
-        ></div>
+        {state.context.currentPlayer === PIECE.JAUNE ? (
+          <div className={clsx("rounded-full h-6 w-6 col-span-1 bg-yellow-300")} />
+        ) : (
+          <div className={clsx("rounded-full h-6 w-6 col-span-1 bg-red-300")} />
+        )}
       </div>
-      <Grid grid={state.context.grid} />
+      <Grid grid={state.context.grid} onClickHandle={onClickHandle} />
+      {state.value === "end" && <p>You Win!!</p>}
     </div>
   );
 }
