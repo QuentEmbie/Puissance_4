@@ -8,6 +8,7 @@ export const Grid: FC<{ grid: Piece[][] }> = ({ grid }) => {
   const gridSize = `grid-cols-${grid[0].length}`;
   const [state, send] = useMachine(promiseMachine);
   const onClickHandle = (i: number, j: number) => {
+    send("PLAY_WINNING_MOVE", { i, j });
     send("PLAY_MOVE", { i, j });
   };
   return (
