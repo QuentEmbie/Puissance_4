@@ -4,16 +4,13 @@ import { FC } from "react";
 import { promiseMachine } from "../App";
 import { Piece } from "../types";
 
-export const Grid: FC<{ grid: Piece[][]; onClickHandle: (i: number, j: number) => void }> = ({ grid, onClickHandle }) => {
-  const gridSize = `grid-cols-${grid[0].length}`;
-  const [state, send] = useMachine(promiseMachine);
-
+export const Grid: FC<{ grid: Piece[][]; onClickHandle: (j: number) => void }> = ({ grid, onClickHandle }) => {
   return (
     <div className={clsx("grid w-fit bg-blue-400 p-1 gap-1", "grid-cols-8")}>
       {grid.map((row, i) => {
         return row.map((el, j) => (
           <div
-            onClick={() => onClickHandle(i, j)}
+            onClick={() => onClickHandle(j)}
             className={clsx(
               "rounded-full h-6 w-6 col-span-1",
               el === "v" && "bg-slate-100",

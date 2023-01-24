@@ -44,3 +44,7 @@ export const findLowestInColumn = (grid: Piece[][], j: number) => {
   }
   return -1;
 };
+
+export const currentPlayer = (context: any) => {
+  return context.players![context.currentPlayer!];
+};

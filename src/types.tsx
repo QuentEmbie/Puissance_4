@@ -5,3 +5,8 @@ export const PIECE = {
 } as const;
 
 export type Piece = typeof PIECE[keyof typeof PIECE];
+
+export type Player = {
+  color: Piece;
+  name: String;
+};
