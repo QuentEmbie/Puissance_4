@@ -5,7 +5,7 @@ export const AddPlayer: FC<{ onClick: (name: String) => void }> = ({ onClick }) 
   return (
     <div className="flex gap-6">
       <input type="text" className="border" onChange={(event) => setName(event.target.value)}></input>
-      <button onClick={onClick(name)}>Add a player</button>
+      <button onClick={onClick(name ?? "")}>Add a player</button>
     </div>
   );
 };

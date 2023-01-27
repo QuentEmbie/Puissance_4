@@ -1,18 +1,26 @@
 import "./index.css";
-import { assign, createMachine, interpret } from "xstate";
-import { useMachine } from "@xstate/react";
+import { ActorRefFrom, assign, createMachine, interpret } from "xstate";
+import { useInterpret, useMachine } from "@xstate/react";
 import clsx from "clsx";
 import { PIECE, Piece, Player } from "./types";
 import { Grid } from "./components/grid";
-import { GetDerivedStateFromProps } from "react";
+import { createContext, GetDerivedStateFromProps } from "react";
 import { currentPlayer, findLowestInColumn, isWinningMove } from "./utils";
 import { AddPlayer } from "./components/add_player";
+import React from "react";
+import { PlayerSection } from "./pages/players";
 
-export const promiseMachine = createMachine(
+export const p4Machine = createMachine(
   {
+    tsTypes: {} as import("./App.typegen").Typegen0,
     schema: {
-      context: {} as { grid: Piece[][]; currentPlayer?: 0 | 1; players: Player[] },
-      events: {} as { type: "START" } | { type: "PLAY_MOVE" } | { type: "END" } | { type: "RESTART" } | { type: "ADD_PLAYER" },
+      context: {} as { grid: Piece[][]; currentPlayer?: 0 | 1; players: String[]; colors: Piece[] },
+      events: {} as
+        | { type: "START" }
+        | { type: "PLAY_MOVE"; j: number }
+        | { type: "END" }
+        | { type: "RESTART" }
+        | { type: "ADD_PLAYER"; name: String; playerNumber: number },
     },
     id: "promise",
     initial: "waiting",
@@ -28,6 +36,7 @@ export const promiseMachine = createMachine(
       ],
       currentPlayer: 0,
       players: [],
+      colors: [PIECE.JAUNE, PIECE.ROUGE],
     },
     states: {
       waiting: {
@@ -65,7 +74,7 @@ export const promiseMachine = createMachine(
         return context;
       }),
       add_player: assign((context, event) => {
-        context.players = [...context.players, { name: event.name, color: "r" }];
+        context.players[event.playerNumber] = event.name;
         return context;
       }),
       cleanGrid: assign((context) => {
@@ -98,50 +107,57 @@ export const promiseMachine = createMachine(
   }
 );
 
+interface P4ContextType {
+  p4Service: ActorRefFrom<typeof p4Machine>;
+}
+
+export const P4Context = createContext({} as P4ContextType);
+
 function App() {
-  const [state, send] = useMachine(promiseMachine, {});
-  console.log(state.context.currentPlayer);
+  const [state, send] = useMachine(p4Machine, {});
+  const p4Service = useInterpret(p4Machine);
+
   const onClickHandle = (j: number) => {
     send("PLAY_MOVE", { j });
   };
-  const addPlayer = (name: String) => {
-    send("ADD_PLAYER", { name });
-  };
-  return (
-    <div className="flex flex-col gap-10 items-center">
-      <h1 className="text-black text-lg">Puissance 4</h1>
-      <AddPlayer onClick={addPlayer}></AddPlayer>
-      <div>
-        {state.context.players.map((player) => (
-          <div>{player.name} </div>
-        ))}
-      </div>
-      <div className="flex gap-8">
-        <button onClick={() => send("START")}>START</button>
-        <button onClick={() => console.log(state)}>PRINT STATE</button>
-        <button onClick={() => console.log(state.context)}>PRINT CONTEXT</button>
-        <button onClick={() => send("END")}>FINISH_GAME</button>
-      </div>
 
-      {state.value === "play" && (
-        <div className="flex space-x-3">
-          <p>Current player: </p>
-          <div
-            className={clsx(
-              "rounded-full h-6 w-6 col-span-1",
-              currentPlayer(state.context).color === PIECE.JAUNE ? " bg-yellow-300" : "bg-red-300"
-            )}
-          />
+  return (
+    <P4Context.Provider value={{ p4Service }}>
+      <div className="flex flex-col gap-10 items-center">
+        <h1 className="text-black text-lg">Puissance 4</h1>
+        {state.value === "waiting" && <PlayerSection />}
+        <div>
+          {state.context.players.map((playerName) => (
+            <div>{playerName} </div>
+          ))}
         </div>
-      )}
-      <Grid grid={state.context.grid} onClickHandle={onClickHandle} />
-      {state.value === "end" && (
-        <>
-          <p>{currentPlayer(state.context).name} Win!!</p>
-          <button onClick={() => send("RESTART")}>RESTART</button>
-        </>
-      )}
-    </div>
+        <div className="flex gap-8">
+          <button onClick={() => send("START")}>START</button>
+          <button onClick={() => console.log(state)}>PRINT STATE</button>
+          <button onClick={() => console.log(state.context)}>PRINT CONTEXT</button>
+          <button onClick={() => send("END")}>FINISH_GAME</button>
+        </div>
+
+        {state.value === "play" && (
+          <div className="flex space-x-3">
+            <p>Current player: </p>
+            <div
+              className={clsx(
+                "rounded-full h-6 w-6 col-span-1",
+                currentPlayer(state.context).color === PIECE.JAUNE ? " bg-yellow-300" : "bg-red-300"
+              )}
+            />
+          </div>
+        )}
+        <Grid grid={state.context.grid} onClickHandle={onClickHandle} />
+        {state.value === "end" && (
+          <>
+            <p>{currentPlayer(state.context).name} Win!!</p>
+            <button onClick={() => send("RESTART")}>RESTART</button>
+          </>
+        )}
+      </div>
+    </P4Context.Provider>
   );
 }
 
