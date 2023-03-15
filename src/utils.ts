@@ -1,4 +1,5 @@
 import { GameContext, PIECE, Piece } from "./types";
+import { GameModel } from "./machine";
 
 export const isWinningMove = (grid: Piece[][], j: number, color: Piece) => {
   const i = findLowestInColumn(grid, j);
@@ -45,7 +46,7 @@ export const findLowestInColumn = (grid: Piece[][], j: number) => {
   return -1;
 };
 
-export const currentColor = (context: GameContext) => {
+export const currentColor = (context: GameModel) => {
   return context.colors[context.currentPlayer];
 };
 

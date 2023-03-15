@@ -14,6 +14,7 @@
     "model": "link:xstate/lib/model",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-hook-form": "^7.43.1",
     "xstate": "^4.35.2"
   },
   "devDependencies": {

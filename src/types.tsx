@@ -1,5 +1,5 @@
 import { ContextFrom, EventFrom } from "xstate";
-import { p4Machine } from "./machine";
+import { p4Machine, GameModel } from "./machine";
 
 export const PIECE = {
   VIDE: "v",
@@ -22,5 +22,8 @@ export const STATE = {
 
 export type State = typeof STATE[keyof typeof STATE];
 
-export type GameContext = ContextFrom<typeof p4Machine>;
-export type GameEvent = EventFrom<typeof p4Machine>;
+export type GameContext = ContextFrom<typeof GameModel>;
+export type GameEvents = EventFrom<typeof GameModel>;
+export type GameEvent<T extends GameEvents["type"]> = GameEvents & { type: T };
+export type GameGuard<T extends GameEvents["type"]> = (context: GameContext, event: GameEvent<T>) => boolean;
+export type GameAction<T extends GameEvents["type"]> = (context: GameContext, event: GameEvent<T>) => Partial<GameContext>;
