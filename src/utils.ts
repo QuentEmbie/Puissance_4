@@ -46,7 +46,7 @@ export const findLowestInColumn = (grid: Piece[][], j: number) => {
   return -1;
 };
 
-export const currentColor = (context: GameModel) => {
+export const currentColor = (context: GameContext) => {
   return context.colors[context.currentPlayer];
 };
 

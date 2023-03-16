@@ -1,9 +1,7 @@
-import { createMachine, assign } from "xstate";
 import { createModel } from "xstate/lib/model";
-import { addPlayerAction, cleanGridAction, playAction, playWinningMoveAction } from "./actions";
-import { are_two_players, column_valid, is_winning_move, less_than_two_players } from "./guards";
-import { GameContext, GameEvent, PIECE, Piece, STATE } from "./types";
-import { currentColor, findLowestInColumn, isWinningMove } from "./utils";
+import { addPlayerAction, cleanContextAction, playAction, playWinningMoveAction } from "./actions";
+import { are_two_players, column_valid, is_winning_move, less_or_equal_to_two_players } from "./guards";
+import { PIECE, Piece, STATE } from "./types";
 
 export const GameModel = createModel(
   {
@@ -14,10 +12,10 @@ export const GameModel = createModel(
       ["v", "v", "v", "v", "v", "v", "v", "v"],
       ["v", "v", "v", "v", "v", "v", "v", "v"],
       ["v", "v", "v", "v", "v", "v", "v", "v"],
-      ["v", "v", "j", "r", "v", "v", "v", "v"],
+      ["v", "v", "v", "v", "v", "v", "v", "v"],
     ] as Piece[][],
     currentPlayer: 0,
-    players: ["john", "greg"],
+    players: ["", ""],
     colors: [PIECE.JAUNE, PIECE.ROUGE],
   },
   {
@@ -36,10 +34,10 @@ export const p4Machine = GameModel.createMachine({
   context: GameModel.initialContext,
   states: {
     WAITING: {
-      entry: [GameModel.assign(cleanGridAction)],
       on: {
         START: { target: STATE.PLAY, cond: are_two_players },
-        ADD_PLAYER: { cond: less_than_two_players, target: STATE.WAITING, actions: [GameModel.assign(addPlayerAction)] },
+        ADD_PLAYER: { cond: less_or_equal_to_two_players, target: STATE.WAITING, actions: [GameModel.assign(addPlayerAction)] },
+        RESTART: { target: STATE.WAITING, actions: [GameModel.assign(cleanContextAction)] },
       },
     },
     PLAY: {
@@ -48,11 +46,12 @@ export const p4Machine = GameModel.createMachine({
           { cond: is_winning_move, actions: [GameModel.assign(playWinningMoveAction)], target: STATE.END },
           { cond: column_valid, actions: [GameModel.assign(playAction)], target: STATE.PLAY },
         ],
+        RESTART: { target: STATE.WAITING, actions: [GameModel.assign(cleanContextAction)] },
       },
     },
     END: {
       on: {
-        RESTART: { target: STATE.WAITING },
+        RESTART: { target: STATE.WAITING, actions: [GameModel.assign(cleanContextAction)] },
       },
     },
   },

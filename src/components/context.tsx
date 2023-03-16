@@ -1,12 +1,12 @@
 import { useMachine } from "@xstate/react";
 import { createContext, PropsWithChildren, useContext } from "react";
 import { p4Machine } from "../machine";
-import { GameContext, GameEvent, State } from "../types";
+import { GameContext, GameEvents, State } from "../types";
 
 type P4ContextType = {
   state: State;
   context: GameContext;
-  send: (event: GameEvent) => void;
+  send: (event: GameEvents) => void;
 };
 
 const Context = createContext<P4ContextType>({} as P4ContextType);

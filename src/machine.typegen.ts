@@ -22,7 +22,7 @@ export interface Typegen0 {
     are_two_players: "START";
     column_valid: "PLAY_MOVE";
     is_winning_move: "PLAY_MOVE";
-    less_than_two_players: "ADD_PLAYER";
+    less_or_equal_to_two_players: "ADD_PLAYER";
   };
   eventsCausingServices: {};
   matchesStates: "END" | "PLAY" | "WAITING";

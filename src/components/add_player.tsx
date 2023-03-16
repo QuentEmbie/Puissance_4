@@ -1,5 +1,6 @@
 import { FC, useState } from "react";
 import { useForm } from "react-hook-form";
+import { ColorCircle } from "./colorCircle";
 import { useGame } from "./context";
 
 type FormData = {
@@ -7,7 +8,7 @@ type FormData = {
 };
 
 export const AddPlayer: FC<{ number: number }> = ({ number }) => {
-  const { send } = useGame();
+  const { context, send } = useGame();
   const {
     register,
     handleSubmit,
@@ -20,6 +21,7 @@ export const AddPlayer: FC<{ number: number }> = ({ number }) => {
   return (
     <>
       <form className="flex gap-6" onSubmit={handleSubmit(onSubmit)}>
+        <ColorCircle playerNumber={number} />
         <input type="text" className="border" {...register("name", { required: "Ce champ ne peut pas être vide" })}></input>
         <button type="submit">Add a player</button>
       </form>

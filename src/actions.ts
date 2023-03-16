@@ -18,7 +18,7 @@ export const playWinningMoveAction: GameAction<"PLAY_MOVE"> = (context, event) =
   return context;
 };
 
-export const cleanGridAction: GameAction<"RESTART"> = (context, event) => {
+export const cleanContextAction: GameAction<"RESTART"> = (context, event) => {
   context.grid = [
     ["v", "v", "v", "v", "v", "v", "v", "v"],
     ["v", "v", "v", "v", "v", "v", "v", "v"],
@@ -28,5 +28,6 @@ export const cleanGridAction: GameAction<"RESTART"> = (context, event) => {
     ["v", "v", "v", "v", "v", "v", "v", "v"],
     ["v", "v", "v", "v", "v", "v", "v", "v"],
   ];
+  context.players = ["", ""];
   return context;
 };
